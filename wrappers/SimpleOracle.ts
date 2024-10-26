@@ -1,0 +1,1 @@
+export { OracleContract as default } from '../build/SimpleOracle/tact_OracleContract';

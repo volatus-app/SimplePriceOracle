@@ -1,0 +1,186 @@
+#pragma version =0.4.4;
+#pragma allow-post-modification;
+#pragma compute-asm-ltr;
+
+#include "tact_OracleContract.headers.fc";
+#include "tact_OracleContract.stdlib.fc";
+#include "tact_OracleContract.storage.fc";
+
+;;
+;; Contract OracleContract functions
+;;
+
+(cell, cell, slice, int) $OracleContract$_contract_init() impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = (null(), null(), null(), null());
+    $self'owner = __tact_context_get_sender();
+    $self'expirationPeriod = 180;
+    return ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod);
+}
+
+((cell, cell, slice, int), ()) $OracleContract$_fun_feedPrices((cell, cell, slice, int) $self, cell $prices, int $validation) impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = $self;
+    int $nowTimestamp = $global_now();
+    var ($reserve, $price, $fresh$flag_0) = __tact_dict_min_slice_int($prices, 267, 257);
+    while ($fresh$flag_0) {
+        $self'prices~__tact_dict_set_slice_cell(267, $reserve, $PriceData$_store_cell($PriceData$_constructor_price_lastUpdateTime($price, $nowTimestamp)));
+        ($reserve, $price, $fresh$flag_0) = __tact_dict_next_slice_int($prices, 267, $reserve, 257);
+    }
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+((cell, cell, slice, int), ()) $OracleContract$_fun_requireFeeder((cell, cell, slice, int) $self, slice $feeder) impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = $self;
+    int $isFeeder = __tact_dict_get_slice_int($self'feeders, 267, $feeder, 1);
+    throw_unless(28787, __tact_int_eq_nullable_one($isFeeder, true));
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+((cell, cell, slice, int), int) $OracleContract$_fun_price((cell, cell, slice, int) $self, slice $reserve) impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = $self;
+    tuple $priceData = $PriceData$_load_opt(__tact_dict_get_slice_cell($self'prices, 267, $reserve));
+    if (( (null?($priceData)) ? (true) : ((($global_now() - $PriceData$_get_lastUpdateTime($PriceData$_not_null($priceData))) > $self'expirationPeriod)) )) {
+        var $fresh$ret_1 = 0;
+        return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), $fresh$ret_1);
+    }
+    var $fresh$ret_2 = $PriceData$_get_price($PriceData$_not_null($priceData));
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), $fresh$ret_2);
+}
+
+((cell, cell, slice, int), ()) $OracleContract$_fun_requireOwner((cell, cell, slice, int) $self) impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = $self;
+    throw_unless(132, ( __tact_slice_eq_bits($self'owner, __tact_context_get_sender()) ));
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+((cell, cell, slice, int), slice) $OracleContract$_fun_owner((cell, cell, slice, int) $self) impure inline_ref {
+    var (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)) = $self;
+    var $fresh$ret_3 = $self'owner;
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), $fresh$ret_3);
+}
+
+;;
+;; Receivers of a Contract OracleContract
+;;
+
+(((cell, cell, slice, int)), ()) $OracleContract$_internal_binary_AddFeeder((cell, cell, slice, int) $self, (slice) $msg) impure inline {
+    var ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod) = $self;
+    var ($msg'feeder) = $msg;
+    ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)~$OracleContract$_fun_requireOwner();
+    $self'feeders~__tact_dict_set_slice_int(267, $msg'feeder, true, 1);
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+(((cell, cell, slice, int)), ()) $OracleContract$_internal_binary_RemoveFeeder((cell, cell, slice, int) $self, (slice) $msg) impure inline {
+    var ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod) = $self;
+    var ($msg'feeder) = $msg;
+    ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)~$OracleContract$_fun_requireOwner();
+    $self'feeders~__tact_dict_delete(267, $msg'feeder);
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+(((cell, cell, slice, int)), ()) $OracleContract$_internal_binary_FeedPrices((cell, cell, slice, int) $self, (cell) $msg) impure inline {
+    var ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod) = $self;
+    var ($msg'prices) = $msg;
+    ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)~$OracleContract$_fun_requireFeeder(__tact_context_get_sender());
+    ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)~$OracleContract$_fun_feedPrices($msg'prices, true);
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+(((cell, cell, slice, int)), ()) $OracleContract$_internal_binary_Deploy((cell, cell, slice, int) $self, (int) $deploy) impure inline {
+    var ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod) = $self;
+    var ($deploy'queryId) = $deploy;
+    ($self'prices, $self'feeders, $self'owner, $self'expirationPeriod)~$OracleContract$_fun_notify($DeployOk$_store_cell($DeployOk$_constructor_queryId($deploy'queryId)));
+    return (($self'prices, $self'feeders, $self'owner, $self'expirationPeriod), ());
+}
+
+;;
+;; Get methods of a Contract OracleContract
+;;
+
+_ %price(slice $reserve) method_id(120091) {
+    slice $reserve = __tact_verify_address($reserve);
+    var self = $OracleContract$_contract_load();
+    var res = self~$OracleContract$_fun_price($reserve);
+    return res;
+}
+
+_ %owner() method_id(83229) {
+    var self = $OracleContract$_contract_load();
+    var res = self~$OracleContract$_fun_owner();
+    return res;
+}
+
+_ lazy_deployment_completed() method_id {
+    return get_data().begin_parse().load_int(1);
+}
+
+;;
+;; Routing of a Contract OracleContract
+;;
+
+((cell, cell, slice, int), int) $OracleContract$_contract_router_internal((cell, cell, slice, int) self, int msg_bounced, slice in_msg) impure inline_ref {
+    ;; Handle bounced messages
+    if (msg_bounced) {
+        return (self, true);
+    }
+    
+    ;; Parse incoming message
+    int op = 0;
+    if (slice_bits(in_msg) >= 32) {
+        op = in_msg.preload_uint(32);
+    }
+    
+    
+    ;; Receive AddFeeder message
+    if (op == 2886385065) {
+        var msg = in_msg~$AddFeeder$_load();
+        self~$OracleContract$_internal_binary_AddFeeder(msg);
+        return (self, true);
+    }
+    
+    ;; Receive RemoveFeeder message
+    if (op == 1310971756) {
+        var msg = in_msg~$RemoveFeeder$_load();
+        self~$OracleContract$_internal_binary_RemoveFeeder(msg);
+        return (self, true);
+    }
+    
+    ;; Receive FeedPrices message
+    if (op == 3415456732) {
+        var msg = in_msg~$FeedPrices$_load();
+        self~$OracleContract$_internal_binary_FeedPrices(msg);
+        return (self, true);
+    }
+    
+    ;; Receive Deploy message
+    if (op == 2490013878) {
+        var msg = in_msg~$Deploy$_load();
+        self~$OracleContract$_internal_binary_Deploy(msg);
+        return (self, true);
+    }
+    
+    return (self, false);
+}
+
+() recv_internal(int msg_value, cell in_msg_cell, slice in_msg) impure {
+    
+    ;; Context
+    var cs = in_msg_cell.begin_parse();
+    var msg_flags = cs~load_uint(4);
+    var msg_bounced = -(msg_flags & 1);
+    slice msg_sender_addr = __tact_verify_address(cs~load_msg_addr());
+    __tact_context = (msg_bounced, msg_sender_addr, msg_value, cs);
+    __tact_context_sender = msg_sender_addr;
+    
+    ;; Load contract data
+    var self = $OracleContract$_contract_load();
+    
+    ;; Handle operation
+    int handled = self~$OracleContract$_contract_router_internal(msg_bounced, in_msg);
+    
+    ;; Throw if not handled
+    throw_unless(130, handled);
+    
+    ;; Persist state
+    $OracleContract$_contract_store(self);
+}
